@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEETs Spin the Wheel</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Custom scrollbar to match the dark theme */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #18181b; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+        /* 1. First Font Definition */
+        @font-face {
+            font-family: 'Crypton Ink';
+            src: url('CryptonInk.ttf') format('truetype');
+        }
+
+        /* 2. Second Font Definition */
+        @font-face {
+            font-family: 'Aloja Light';
+            src: url('alojalight.otf') format('opentype');
+        }
+
+        /* Classes to use the fonts */
+        .font-crypton {
+            font-family: 'Crypton Ink', sans-serif;
+        }
+
+        .font-aloja {
+            font-family: 'Aloja Light', sans-serif;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-cover bg-center bg-no-repeat" style="background-image: url('background.jpg');">
+    <div class="min-h-screen w-full h-full bg-black/70 p-8 text-white">
+
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-8">
+                <h1 class="text-6xl font-aloja text-white mb-2" style="text-shadow: 0 0 20px rgba(255,0,0,0.5), 0 4px 10px rgba(0,0,0,0.8); letter-spacing: 0.1em;">
+                    NEETs
+                </h1>
+                <h2 class="text-3xl font-bold text-red-600" style="text-shadow: 0 2px 8px rgba(0,0,0,0.8);">
+                    Spin the Wheel
+                </h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                
+                <div class="bg-zinc-900/90 rounded-xl shadow-2xl p-6 border-2 border-red-600 backdrop-blur-sm">
+                    <h2 class="text-2xl font-bold mb-4">Enter Names</h2>
+                    
+                    <textarea id="inputArea"                         
+                        class="w-full h-64 p-4 bg-black border-2 border-zinc-700 rounded-lg focus:border-red-600 focus:outline-none resize-none text-white placeholder-zinc-500"></textarea>
+                    
+                    <div class="flex gap-3 mt-4">
+                        <button onclick="processInput()" 
+                            class="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition shadow-lg">
+                            Create Wheel
+                        </button>
+                        <button onclick="resetWheel()" 
+                            class="px-6 bg-zinc-700 text-white py-3 rounded-lg font-semibold hover:bg-zinc-600 transition flex items-center gap-2">
+                            <i data-lucide="rotate-ccw" width="20"></i> Reset
+                        </button>
+                    </div>
+
+                    <div id="entriesContainer" class="mt-6 hidden">
+                        <h3 class="text-lg font-bold mb-3">Entries</h3>
+                        <div id="entriesList" class="space-y-2 max-h-64 overflow-y-auto">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="bg-zinc-900/90 rounded-xl shadow-2xl p-6 flex flex-col items-center border-2 border-red-600 backdrop-blur-sm">
+                    <h2 class="text-2xl font-bold mb-4">Wheel</h2>
+                    
+                    <div id="emptyState" class="flex-1 flex items-center justify-center text-zinc-500 text-lg py-12">
+                        Enter names to create the wheel
+                    </div>
+
+                    <div id="wheelState" class="hidden flex-col items-center w-full">
+                        <canvas id="wheelCanvas" width="400" height="400" class="mb-6"></canvas>
+                        
+                        <button id="spinBtn" onclick="spinWheel()" 
+                            class="w-full py-4 rounded-lg font-bold text-xl transition shadow-lg bg-red-600 hover:bg-red-700 text-white"
+                            style="box-shadow: 0 0 20px rgba(255,0,0,0.5);">
+                            SPIN!
+                        </button>
+
+                        <div id="winnerDisplay" class="mt-6 w-full hidden">
+                            <div id="winnerCard" class="p-6 rounded-lg text-center border-2 bg-zinc-800">
+                                <p class="text-zinc-400 font-semibold mb-2">Winner:</p>
+                                <p id="winnerName" class="text-3xl font-bold text-white mb-4"></p>
+                                <button onclick="removeWinner()" 
+                                    class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2 mx-auto">
+                                    <i data-lucide="trash-2" width="18"></i> Remove from Wheel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State variables
+        let entries = [];
+        let spinning = false;
+        let rotation = 0;
+        let selected = null;
+        
+        // Constants
+        const colors = [
+            '#FF0000', '#CC0000', '#FF3333', '#990000', '#FF6666',
+            '#EE0000', '#DD0000', '#FF4444', '#AA0000', '#FF5555',
+            '#BB0000', '#FF2222', '#880000', '#FF7777', '#C00000'
+        ];
+
+        // DOM Elements
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const winnerDisplay = document.getElementById('winnerDisplay');
+        const winnerCard = document.getElementById('winnerCard');
+        const winnerName = document.getElementById('winnerName');
+        const entriesContainer = document.getElementById('entriesContainer');
+        const emptyState = document.getElementById('emptyState');
+        const wheelState = document.getElementById('wheelState');
+
+        // Initialize Icons
+        lucide.createIcons();
+
+        function processInput() {
+            const input = document.getElementById('inputArea').value;
+            const lines = input.trim().split('\n').filter(line => line.trim());
+            const counts = {};
+            
+            lines.forEach(line => {
+                const names = line.split(/[,\t]/).map(n => n.trim()).filter(n => n);
+                names.forEach(name => {
+                    counts[name] = (counts[name] || 0) + 1;
+                });
+            });
+
+            entries = Object.entries(counts).map(([name, count], idx) => ({
+                name,
+                weight: count,
+                color: colors[idx % colors.length],
+                id: Date.now() + idx
+            }));
+
+            if(entries.length > 0) {
+                emptyState.classList.add('hidden');
+                wheelState.classList.remove('hidden');
+                wheelState.classList.add('flex');
+                entriesContainer.classList.remove('hidden');
+                resetStateForNewSpin();
+            }
+        }
+
+        function resetStateForNewSpin() {
+            selected = null;
+            rotation = 0;
+            winnerDisplay.classList.add('hidden');
+            renderEntries();
+            drawWheel();
+        }
+
+        function renderEntries() {
+            const list = document.getElementById('entriesList');
+            list.innerHTML = '';
+            
+            entries.forEach(entry => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-3 rounded-lg bg-zinc-800 border border-zinc-700";
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded border-2 border-black" style="background-color: ${entry.color}"></div>
+                        <span class="font-semibold text-white">${entry.name}</span>
+                        <span class="text-sm text-zinc-400">(×${entry.weight})</span>
+                    </div>
+                    <button onclick="removeEntry(${entry.id})" class="text-red-500 hover:text-red-400 transition">
+                        <i data-lucide="trash-2" width="18"></i>
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+            lucide.createIcons(); // Refresh icons
+        }
+
+        function removeEntry(id) {
+            entries = entries.filter(e => e.id !== id);
+            if (entries.length === 0) resetWheel();
+            else {
+                resetStateForNewSpin();
+            }
+        }
+
+        function removeWinner() {
+            if(selected) removeEntry(selected.id);
+        }
+
+        function resetWheel() {
+            document.getElementById('inputArea').value = '';
+            entries = [];
+            selected = null;
+            rotation = 0;
+            emptyState.classList.remove('hidden');
+            wheelState.classList.add('hidden');
+            wheelState.classList.remove('flex');
+            entriesContainer.classList.add('hidden');
+        }
+
+        function drawWheel() {
+            if (!canvas || entries.length === 0) return;
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 10;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate((rotation * Math.PI) / 180);
+
+            const totalWeight = entries.reduce((sum, e) => sum + e.weight, 0);
+            let currentAngle = 0;
+
+            entries.forEach((entry) => {
+                const sliceAngle = (entry.weight / totalWeight) * 2 * Math.PI;
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, currentAngle, currentAngle + sliceAngle);
+                ctx.closePath();
+                ctx.fillStyle = entry.color;
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Text
+                ctx.save();
+                ctx.rotate(currentAngle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Arial';
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 4;
+                ctx.fillText(entry.name, radius - 20, 5);
+                ctx.restore();
+
+                currentAngle += sliceAngle;
+            });
+
+            ctx.restore();
+
+            // Pointer
+            ctx.beginPath();
+            ctx.moveTo(centerX + radius - 10, centerY);
+            ctx.lineTo(centerX + radius + 25, centerY - 20);
+            ctx.lineTo(centerX + radius + 25, centerY + 20);
+            ctx.closePath();
+            ctx.fillStyle = '#FF0000';
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function spinWheel() {
+            if (spinning || entries.length === 0) return;
+
+            spinning = true;
+            winnerDisplay.classList.add('hidden');
+            spinBtn.innerText = "SPINNING...";
+            spinBtn.classList.add('bg-zinc-700', 'cursor-not-allowed');
+            spinBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+
+            const spins = 5 + Math.random() * 5;
+            const extraDegrees = Math.random() * 360;
+            const totalRotation = spins * 360 + extraDegrees;
+            
+            const duration = 4000;
+            const startTime = Date.now();
+            const startRotation = rotation;
+
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease out cubic
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const currentRotation = startRotation + totalRotation * easeOut;
+                
+                rotation = currentRotation % 360;
+                drawWheel();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    spinning = false;
+                    spinBtn.innerText = "SPIN!";
+                    spinBtn.classList.remove('bg-zinc-700', 'cursor-not-allowed');
+                    spinBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                    determineWinner(rotation);
+                }
+            };
+
+            animate();
+        }
+
+        function determineWinner(finalRotation) {
+            const totalWeight = entries.reduce((sum, e) => sum + e.weight, 0);
+            // In Canvas, 0 degrees is usually "Right" (3 o'clock). 
+            // The pointer is at "Right" (0 degrees relative to canvas), but rotation spins the canvas.
+            // We need to normalize.
+            
+            // Correction: Visual pointer is at 0 rads (right side). 
+            // If wheel rotates +90deg (clockwise), the slice at -90deg (270deg) is now under the pointer.
+            const pointerAngle = (360 - (finalRotation % 360)) % 360;
+            
+            let currentAngle = 0;
+            for (let entry of entries) {
+                const sliceAngle = (entry.weight / totalWeight) * 360;
+                if (pointerAngle >= currentAngle && pointerAngle < currentAngle + sliceAngle) {
+                    selected = entry;
+                    showWinner(entry);
+                    break;
+                }
+                currentAngle += sliceAngle;
+            }
+        }
+
+        function showWinner(entry) {
+            winnerName.innerText = entry.name;
+            winnerCard.style.borderColor = entry.color;
+            winnerDisplay.classList.remove('hidden');
+            lucide.createIcons(); // Ensure icons load in the hidden section
+        }
+    </script>
+</body>
+</html>
