@@ -15,3 +15,17 @@ This project demonstrates basic web interactivity, input handling, and front-end
 - HTML
 - CSS (inline or `<style>` tag)
 
+## Example Input
+
+Camille, Riven, Sylas
+Qiyana, Yasuo, Zed
+Ezreal, Pyke, Soraka
+Blitzcrank, Gangplank, Ivern
+Aatrox, Briar, Dr. Mundo
+Akali, Draven, Rengar
+Ambessa, Draven, Gragas
+Briar, Gangplank, Zeri
+Annie, Blitzcrank, Gragas
+Ryze, Shaco, Zilean
+Akali, Akshan, Kalista
+Lux, Miss Fortune, Tristana
